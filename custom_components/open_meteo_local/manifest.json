@@ -1,11 +1,13 @@
 {
-  "domain": "open_meteo",
-  "name": "Open-Meteo",
+  "domain": "open_meteo_local",
+  "name": "Open-Meteo local",
   "codeowners": ["@frenck"],
   "config_flow": true,
   "dependencies": ["zone"],
-  "documentation": "https://www.home-assistant.io/integrations/open_meteo",
+  "documentation": "https://github.com/sayurin/open_meteo_local",
   "integration_type": "service",
+  "issue_tracker": "https://github.com/sayurin/open_meteo_local/issues",
   "iot_class": "cloud_polling",
-  "requirements": ["open-meteo==0.3.2"]
+  "requirements": ["open-meteo==0.3.2"],
+  "version": "0.0.0"
 }

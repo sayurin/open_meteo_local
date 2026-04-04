@@ -17,7 +17,7 @@ from homeassistant.components.weather import (
     ATTR_CONDITION_SUNNY,
 )
 
-DOMAIN: Final = "open_meteo"
+DOMAIN: Final = "open_meteo_local"
 
 LOGGER = logging.getLogger(__package__)
 SCAN_INTERVAL = timedelta(minutes=30)
