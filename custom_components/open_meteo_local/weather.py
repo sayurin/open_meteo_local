@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta, timezone
 
 from open_meteo import Forecast as OpenMeteoForecast
 
@@ -106,10 +106,11 @@ class OpenMeteoWeatherEntity(
             return None
 
         forecasts: list[Forecast] = []
+        tz = timezone(timedelta(seconds=self.coordinator.data.utc_offset_seconds))
 
         daily = self.coordinator.data.daily
         for index, date in enumerate(self.coordinator.data.daily.time):
-            _datetime = datetime.combine(date=date, time=time(0), tzinfo=dt_util.UTC)
+            _datetime = datetime.combine(date=date, time=time(0), tzinfo=tz)
             forecast = Forecast(
                 datetime=_datetime.isoformat(),
             )
@@ -153,14 +154,15 @@ class OpenMeteoWeatherEntity(
             return None
 
         forecasts: list[Forecast] = []
+        tz = timezone(timedelta(seconds=self.coordinator.data.utc_offset_seconds))
 
         # Can have data in the past: https://github.com/open-meteo/open-meteo/issues/699
-        today = dt_util.utcnow()
+        today = dt_util.now(tz)
 
         hourly = self.coordinator.data.hourly
         for index, _datetime in enumerate(self.coordinator.data.hourly.time):
             if _datetime.tzinfo is None:
-                _datetime = _datetime.replace(tzinfo=dt_util.UTC)
+                _datetime = _datetime.replace(tzinfo=tz)
             if _datetime < today:
                 continue
 
