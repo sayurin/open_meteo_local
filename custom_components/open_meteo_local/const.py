@@ -18,6 +18,9 @@ from homeassistant.components.weather import (
 )
 
 DOMAIN: Final = "open_meteo_local"
+OPEN_METEO_URL: Final = "https://api.open-meteo.com/v1/forecast"
+FLATBUFFERS_PREFIX: Final = 4
+FLATBUFFERS_ERROR_MARKER: Final = 0x78656E55  # "Unex" little-endian
 
 LOGGER = logging.getLogger(__package__)
 SCAN_INTERVAL = timedelta(minutes=30)

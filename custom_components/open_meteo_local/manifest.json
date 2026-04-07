@@ -8,6 +8,6 @@
   "integration_type": "service",
   "issue_tracker": "https://github.com/sayurin/open_meteo_local/issues",
   "iot_class": "cloud_polling",
-  "requirements": ["open-meteo==0.3.2"],
+  "requirements": ["openmeteo-sdk==1.26.0"],
   "version": "0.0.0"
 }
