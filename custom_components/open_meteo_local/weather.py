@@ -11,7 +11,6 @@ from homeassistant.const import UnitOfPrecipitationDepth, UnitOfSpeed, UnitOfTem
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import OpenMeteoConfigEntry, OpenMeteoDataUpdateCoordinator
@@ -86,9 +85,4 @@ class OpenMeteoWeatherEntity(
     @callback
     def _async_forecast_hourly(self) -> list[Forecast] | None:
         """Return the hourly forecast in native units."""
-        # Can have data in the past: https://github.com/open-meteo/open-meteo/issues/699
-        now_ts = dt_util.utcnow().timestamp()
-        forecasts = [
-            f for ts, f in self.coordinator.data.hourly_forecast if ts >= now_ts
-        ]
-        return forecasts or None
+        return self.coordinator.data.hourly_forecast or None

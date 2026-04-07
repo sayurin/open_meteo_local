@@ -44,7 +44,7 @@ class OpenMeteoData:
     wind_speed: float | None
     wind_bearing: float | None
     daily_forecast: list[Forecast] = field(default_factory=list)
-    hourly_forecast: list[tuple[int, Forecast]] = field(default_factory=list)
+    hourly_forecast: list[Forecast] = field(default_factory=list)
 
 
 class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
@@ -73,6 +73,8 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
             "current": "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m",
             "daily": "precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code,wind_direction_10m_dominant,wind_speed_10m_max",
             "hourly": "precipitation,temperature_2m,weather_code",
+            # Required by: https://github.com/open-meteo/open-meteo/issues/699
+            "forecast_hours": "48",
             "format": "flatbuffers",
             "precipitation_unit": "mm",
             "temperature_unit": "celsius",
@@ -142,7 +144,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 daily_forecast.append(entry)
 
         # Hourly forecast — variable order matches "hourly" list above
-        hourly_forecast: list[tuple[int, Forecast]] = []
+        hourly_forecast: list[Forecast] = []
         if (hourly := response.Hourly()) is not None:
             precipitation = hourly.Variables(0)
             temperature_2m = hourly.Variables(1)
@@ -157,7 +159,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 )
                 entry[ATTR_FORECAST_NATIVE_PRECIPITATION] = precipitation.Values(i)
                 entry[ATTR_FORECAST_NATIVE_TEMP] = temperature_2m.Values(i)
-                hourly_forecast.append((ts, entry))
+                hourly_forecast.append(entry)
 
         return OpenMeteoData(
             condition=condition,
