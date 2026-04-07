@@ -37,7 +37,7 @@ from .const import (
     LOGGER,
     OPEN_METEO_URL,
     SCAN_INTERVAL,
-    WMO_TO_HA_CONDITION_MAP,
+    resolve_condition,
 )
 
 type OpenMeteoConfigEntry = ConfigEntry[OpenMeteoDataUpdateCoordinator]
@@ -86,9 +86,9 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         params = {
             "latitude": zone.attributes[ATTR_LATITUDE],
             "longitude": zone.attributes[ATTR_LONGITUDE],
-            "current": "weather_code,temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,cloud_cover,pressure_msl,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
+            "current": "weather_code,is_day,temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,cloud_cover,pressure_msl,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
             "daily": "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,uv_index_max",
-            "hourly": "weather_code,temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,precipitation_probability,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
+            "hourly": "weather_code,is_day,temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,precipitation_probability,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
             # Required by: https://github.com/open-meteo/open-meteo/issues/699
             "forecast_hours": "48",
             "format": "flatbuffers",
@@ -138,18 +138,21 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         wind_gust_speed: float | None = None
         uv_index: float | None = None
         if (current := response.Current()) is not None:
-            condition = WMO_TO_HA_CONDITION_MAP.get(int(current.Variables(0).Value()))
-            temperature = current.Variables(1).Value()
-            humidity = current.Variables(2).Value()
-            dew_point = current.Variables(3).Value()
-            apparent_temperature = current.Variables(4).Value()
-            cloud_coverage = current.Variables(5).Value()
-            pressure = current.Variables(6).Value()
-            visibility = current.Variables(7).Value()
-            wind_speed = current.Variables(8).Value()
-            wind_bearing = current.Variables(9).Value()
-            wind_gust_speed = current.Variables(10).Value()
-            uv_index = current.Variables(11).Value()
+            condition = resolve_condition(
+                int(current.Variables(0).Value()),
+                bool(current.Variables(1).Value()),
+            )
+            temperature = current.Variables(2).Value()
+            humidity = current.Variables(3).Value()
+            dew_point = current.Variables(4).Value()
+            apparent_temperature = current.Variables(5).Value()
+            cloud_coverage = current.Variables(6).Value()
+            pressure = current.Variables(7).Value()
+            visibility = current.Variables(8).Value()
+            wind_speed = current.Variables(9).Value()
+            wind_bearing = current.Variables(10).Value()
+            wind_gust_speed = current.Variables(11).Value()
+            uv_index = current.Variables(12).Value()
 
         # Daily forecast — variable order matches "daily" list above
         daily_forecast: list[Forecast] = []
@@ -169,9 +172,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
             ):
                 _dt = datetime.fromtimestamp(ts, tz=tz)
                 entry: Forecast = Forecast(datetime=_dt.isoformat())
-                entry[CONDITION] = WMO_TO_HA_CONDITION_MAP.get(
-                    int(weather_code.Values(i))
-                )
+                entry[CONDITION] = resolve_condition(int(weather_code.Values(i)))
                 entry[NATIVE_TEMP] = temp_max.Values(i)
                 entry[NATIVE_TEMP_LOW] = temp_min.Values(i)
                 entry[NATIVE_APPARENT_TEMP] = apparent_temp_max.Values(i)
@@ -187,25 +188,27 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         hourly_forecast: list[Forecast] = []
         if (hourly := response.Hourly()) is not None:
             weather_code_h = hourly.Variables(0)
-            temperature_2m = hourly.Variables(1)
-            humidity_h = hourly.Variables(2)
-            dew_point_h = hourly.Variables(3)
-            apparent_temp_h = hourly.Variables(4)
-            precipitation = hourly.Variables(5)
-            precip_prob_h = hourly.Variables(6)
-            cloud_cover_h = hourly.Variables(7)
-            pressure_h = hourly.Variables(8)
-            wind_spd_h = hourly.Variables(9)
-            wind_dir_h = hourly.Variables(10)
-            wind_gust_h = hourly.Variables(11)
-            uv_index_h = hourly.Variables(12)
+            is_day_h = hourly.Variables(1)
+            temperature_2m = hourly.Variables(2)
+            humidity_h = hourly.Variables(3)
+            dew_point_h = hourly.Variables(4)
+            apparent_temp_h = hourly.Variables(5)
+            precipitation = hourly.Variables(6)
+            precip_prob_h = hourly.Variables(7)
+            cloud_cover_h = hourly.Variables(8)
+            pressure_h = hourly.Variables(9)
+            wind_spd_h = hourly.Variables(10)
+            wind_dir_h = hourly.Variables(11)
+            wind_gust_h = hourly.Variables(12)
+            uv_index_h = hourly.Variables(13)
             for i, ts in enumerate(
                 range(hourly.Time(), hourly.TimeEnd(), hourly.Interval())
             ):
                 _dt = datetime.fromtimestamp(ts, tz=tz)
                 entry = Forecast(datetime=_dt.isoformat())
-                entry[CONDITION] = WMO_TO_HA_CONDITION_MAP.get(
-                    int(weather_code_h.Values(i))
+                entry[CONDITION] = resolve_condition(
+                    int(weather_code_h.Values(i)),
+                    bool(is_day_h.Values(i)),
                 )
                 entry[NATIVE_TEMP] = temperature_2m.Values(i)
                 entry[HUMIDITY] = humidity_h.Values(i)
