@@ -2,30 +2,24 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta, timezone
-
-from open_meteo import Forecast as OpenMeteoForecast
-
 from homeassistant.components.weather import (
-    ATTR_FORECAST_CONDITION,
-    ATTR_FORECAST_NATIVE_PRECIPITATION,
-    ATTR_FORECAST_NATIVE_TEMP,
-    ATTR_FORECAST_NATIVE_TEMP_LOW,
-    ATTR_FORECAST_NATIVE_WIND_SPEED,
-    ATTR_FORECAST_WIND_BEARING,
     Forecast,
     SingleCoordinatorWeatherEntity,
     WeatherEntityFeature,
 )
-from homeassistant.const import UnitOfPrecipitationDepth, UnitOfSpeed, UnitOfTemperature
+from homeassistant.const import (
+    UnitOfLength,
+    UnitOfPrecipitationDepth,
+    UnitOfPressure,
+    UnitOfSpeed,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, WMO_TO_HA_CONDITION_MAP
-from .coordinator import OpenMeteoConfigEntry
+from .const import DOMAIN
+from .coordinator import OpenMeteoConfigEntry, OpenMeteoDataUpdateCoordinator
 
 
 async def async_setup_entry(
@@ -39,14 +33,16 @@ async def async_setup_entry(
 
 
 class OpenMeteoWeatherEntity(
-    SingleCoordinatorWeatherEntity[DataUpdateCoordinator[OpenMeteoForecast]]
+    SingleCoordinatorWeatherEntity[OpenMeteoDataUpdateCoordinator]
 ):
     """Defines an Open-Meteo weather entity."""
 
     _attr_has_entity_name = True
     _attr_name = None
     _attr_native_precipitation_unit = UnitOfPrecipitationDepth.MILLIMETERS
+    _attr_native_pressure_unit = UnitOfPressure.HPA
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_visibility_unit = UnitOfLength.METERS
     _attr_native_wind_speed_unit = UnitOfSpeed.KILOMETERS_PER_HOUR
     _attr_supported_features = (
         WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
@@ -56,7 +52,7 @@ class OpenMeteoWeatherEntity(
         self,
         *,
         entry: OpenMeteoConfigEntry,
-        coordinator: DataUpdateCoordinator[OpenMeteoForecast],
+        coordinator: OpenMeteoDataUpdateCoordinator,
     ) -> None:
         """Initialize Open-Meteo weather entity."""
         super().__init__(coordinator=coordinator)
@@ -72,117 +68,69 @@ class OpenMeteoWeatherEntity(
     @property
     def condition(self) -> str | None:
         """Return the current condition."""
-        if not self.coordinator.data.current_weather:
-            return None
-        return WMO_TO_HA_CONDITION_MAP.get(
-            self.coordinator.data.current_weather.weather_code
-        )
+        return self.coordinator.data.condition
 
     @property
     def native_temperature(self) -> float | None:
         """Return the platform temperature."""
-        if not self.coordinator.data.current_weather:
-            return None
-        return self.coordinator.data.current_weather.temperature
+        return self.coordinator.data.temperature
+
+    @property
+    def humidity(self) -> float | None:
+        """Return the humidity."""
+        return self.coordinator.data.humidity
+
+    @property
+    def native_dew_point(self) -> float | None:
+        """Return the dew point."""
+        return self.coordinator.data.dew_point
+
+    @property
+    def native_apparent_temperature(self) -> float | None:
+        """Return the apparent temperature."""
+        return self.coordinator.data.apparent_temperature
+
+    @property
+    def cloud_coverage(self) -> float | None:
+        """Return the cloud coverage."""
+        return self.coordinator.data.cloud_coverage
+
+    @property
+    def native_pressure(self) -> float | None:
+        """Return the pressure."""
+        return self.coordinator.data.pressure
+
+    @property
+    def native_visibility(self) -> float | None:
+        """Return the visibility."""
+        return self.coordinator.data.visibility
 
     @property
     def native_wind_speed(self) -> float | None:
         """Return the wind speed."""
-        if not self.coordinator.data.current_weather:
-            return None
-        return self.coordinator.data.current_weather.wind_speed
+        return self.coordinator.data.wind_speed
 
     @property
     def wind_bearing(self) -> float | str | None:
         """Return the wind bearing."""
-        if not self.coordinator.data.current_weather:
-            return None
-        return self.coordinator.data.current_weather.wind_direction
+        return self.coordinator.data.wind_bearing
+
+    @property
+    def native_wind_gust_speed(self) -> float | None:
+        """Return the wind gust speed."""
+        return self.coordinator.data.wind_gust_speed
+
+    @property
+    def uv_index(self) -> float | None:
+        """Return the UV index."""
+        return self.coordinator.data.uv_index
 
     @callback
     def _async_forecast_daily(self) -> list[Forecast] | None:
         """Return the daily forecast in native units."""
-        if self.coordinator.data.daily is None:
-            return None
-
-        forecasts: list[Forecast] = []
-        tz = timezone(timedelta(seconds=self.coordinator.data.utc_offset_seconds))
-
-        daily = self.coordinator.data.daily
-        for index, date in enumerate(self.coordinator.data.daily.time):
-            _datetime = datetime.combine(date=date, time=time(0), tzinfo=tz)
-            forecast = Forecast(
-                datetime=_datetime.isoformat(),
-            )
-
-            if daily.weathercode is not None:
-                forecast[ATTR_FORECAST_CONDITION] = WMO_TO_HA_CONDITION_MAP.get(
-                    daily.weathercode[index]
-                )
-
-            if daily.precipitation_sum is not None:
-                forecast[ATTR_FORECAST_NATIVE_PRECIPITATION] = daily.precipitation_sum[
-                    index
-                ]
-
-            if daily.temperature_2m_max is not None:
-                forecast[ATTR_FORECAST_NATIVE_TEMP] = daily.temperature_2m_max[index]
-
-            if daily.temperature_2m_min is not None:
-                forecast[ATTR_FORECAST_NATIVE_TEMP_LOW] = daily.temperature_2m_min[
-                    index
-                ]
-
-            if daily.wind_direction_10m_dominant is not None:
-                forecast[ATTR_FORECAST_WIND_BEARING] = (
-                    daily.wind_direction_10m_dominant[index]
-                )
-
-            if daily.wind_speed_10m_max is not None:
-                forecast[ATTR_FORECAST_NATIVE_WIND_SPEED] = daily.wind_speed_10m_max[
-                    index
-                ]
-
-            forecasts.append(forecast)
-
-        return forecasts
+        return self.coordinator.data.daily_forecast or None
 
     @callback
     def _async_forecast_hourly(self) -> list[Forecast] | None:
-        """Return the daily forecast in native units."""
-        if self.coordinator.data.hourly is None:
-            return None
-
-        forecasts: list[Forecast] = []
-        tz = timezone(timedelta(seconds=self.coordinator.data.utc_offset_seconds))
-
-        # Can have data in the past: https://github.com/open-meteo/open-meteo/issues/699
-        today = dt_util.now(tz)
-
-        hourly = self.coordinator.data.hourly
-        for index, _datetime in enumerate(self.coordinator.data.hourly.time):
-            if _datetime.tzinfo is None:
-                _datetime = _datetime.replace(tzinfo=tz)
-            if _datetime < today:
-                continue
-
-            forecast = Forecast(
-                datetime=_datetime.isoformat(),
-            )
-
-            if hourly.weather_code is not None:
-                forecast[ATTR_FORECAST_CONDITION] = WMO_TO_HA_CONDITION_MAP.get(
-                    hourly.weather_code[index]
-                )
-
-            if hourly.precipitation is not None:
-                forecast[ATTR_FORECAST_NATIVE_PRECIPITATION] = hourly.precipitation[
-                    index
-                ]
-
-            if hourly.temperature_2m is not None:
-                forecast[ATTR_FORECAST_NATIVE_TEMP] = hourly.temperature_2m[index]
-
-            forecasts.append(forecast)
-
-        return forecasts
+        """Return the hourly forecast in native units."""
+        return self.coordinator.data.hourly_forecast or None
