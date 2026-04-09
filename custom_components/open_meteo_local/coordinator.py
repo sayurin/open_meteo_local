@@ -90,7 +90,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
             "daily": "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max,uv_index_max",
             "hourly": "weather_code,is_day,temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature,precipitation,precipitation_probability,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
             # Required by: https://github.com/open-meteo/open-meteo/issues/699
-            "forecast_hours": "48",
+            "forecast_hours": "168",
             "format": "flatbuffers",
             "precipitation_unit": "mm",
             "temperature_unit": "celsius",
