@@ -106,22 +106,31 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         except Exception as err:
             raise UpdateFailed("Open-Meteo API communication error") from err
 
-        # Parse length-prefixed FlatBuffers frames
-        responses: list[WeatherApiResponse] = []
+        # Parse the first length-prefixed FlatBuffers frame.
+        # Additional frames are ignored with a warning.
         total = len(data)
-        pos = 0
-        while pos < total:
-            length = int.from_bytes(
-                data[pos : pos + FLATBUFFERS_PREFIX], byteorder="little"
-            )
-            if length == FLATBUFFERS_ERROR_MARKER:
-                raise UpdateFailed(data[pos:total].decode())
-            responses.append(
-                WeatherApiResponse.GetRootAs(data, pos + FLATBUFFERS_PREFIX)
-            )
-            pos += length + FLATBUFFERS_PREFIX
+        if total < FLATBUFFERS_PREFIX:
+            raise UpdateFailed("Malformed response frame header")
 
-        response = responses[0]
+        length = int.from_bytes(data[:FLATBUFFERS_PREFIX], byteorder="little")
+        if length == FLATBUFFERS_ERROR_MARKER:
+            raise UpdateFailed(data.decode())
+        if length <= 0:
+            raise UpdateFailed("Malformed response frame length")
+
+        frame_end = FLATBUFFERS_PREFIX + length
+        if frame_end > total:
+            raise UpdateFailed("Malformed response frame length")
+
+        response = WeatherApiResponse.GetRootAs(data, FLATBUFFERS_PREFIX)
+
+        if frame_end < total:
+            LOGGER.warning(
+                "Received %s extra bytes from Open-Meteo for %s; using first frame only",
+                total - frame_end,
+                self.config_entry.data[CONF_ZONE],
+            )
+
         tz = timezone(timedelta(seconds=response.UtcOffsetSeconds()))
 
         # Current weather — variable order matches "current" list above
