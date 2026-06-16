@@ -1,4 +1,4 @@
-# Open-Meteo Local
+# Open-Meteo Enhanced
 
 [![HACS Validation](https://github.com/sayurin/open_meteo_local/actions/workflows/validate.yml/badge.svg)](https://github.com/sayurin/open_meteo_local/actions/workflows/validate.yml)
 
@@ -77,7 +77,7 @@ This integration provides more accurate condition mapping:
 2. Add this repository as a custom repository:
    - URL: `https://github.com/sayurin/open_meteo_local`
    - Category: Integration
-3. Search for "Open-Meteo local" and install it.
+3. Search for "Open-Meteo Enhanced" and install it.
 4. Restart Home Assistant.
 
 ### Manual
@@ -88,7 +88,7 @@ This integration provides more accurate condition mapping:
 ## Configuration
 
 1. Go to **Settings** → **Devices & Services** → **Add Integration**.
-2. Search for **Open-Meteo local**.
+2. Search for **Open-Meteo Enhanced**.
 3. Select a zone to use for the weather location.
 
 The integration creates a weather entity bound to the selected zone. The location (latitude/longitude) is read from the zone entity, so updating the zone will update the weather data location.

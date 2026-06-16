@@ -1,3 +1,5 @@
 {
-  "name": "Open Meteo local"
+  "name": "Open-Meteo Enhanced",
+  "zip_release": true,
+  "filename": "open_meteo_local.zip"
 }
