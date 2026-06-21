@@ -48,49 +48,53 @@ type OpenMeteoConfigEntry = ConfigEntry[OpenMeteoDataUpdateCoordinator]
 _CURRENT_MAP: tuple[tuple[str, str | None, type], ...] = (
     ("weather_code", None, int),
     ("is_day", None, bool),
-    ("temperature_2m", "temperature", float),
+    ("cloud_cover", "cloud_coverage", int),
     ("relative_humidity_2m", "humidity", float),
-    ("dew_point_2m", "dew_point", float),
     ("apparent_temperature", "apparent_temperature", float),
-    ("cloud_cover", "cloud_coverage", float),
+    ("dew_point_2m", "dew_point", float),
     ("pressure_msl", "pressure", float),
+    ("temperature_2m", "temperature", float),
     ("visibility", "visibility", float),
-    ("wind_speed_10m", "wind_speed", float),
-    ("wind_direction_10m", "wind_bearing", float),
     ("wind_gusts_10m", "wind_gust_speed", float),
+    ("wind_speed_10m", "wind_speed", float),
     ("uv_index", "uv_index", float),
+    ("wind_direction_10m", "wind_bearing", float),
 )
 
 # (api_field_name, forecast_ha_key, value_converter)
 # ha_key=None: condition computation only (weather_code / is_day)
 _DAILY_MAP: tuple[tuple[str, str | None, type], ...] = (
     ("weather_code", None, int),
+    ("cloud_cover_mean", CLOUD_COVERAGE, int),
+    ("relative_humidity_2m_mean", HUMIDITY, float),
+    ("apparent_temperature_mean", NATIVE_APPARENT_TEMP, float),
+    ("dew_point_2m_mean", NATIVE_DEW_POINT, float),
+    ("precipitation_sum", NATIVE_PRECIPITATION, float),
+    ("pressure_msl_mean", NATIVE_PRESSURE, float),
     ("temperature_2m_max", NATIVE_TEMP, float),
     ("temperature_2m_min", NATIVE_TEMP_LOW, float),
-    ("apparent_temperature_max", NATIVE_APPARENT_TEMP, float),
-    ("precipitation_sum", NATIVE_PRECIPITATION, float),
-    ("precipitation_probability_max", PRECIPITATION_PROBABILITY, int),
-    ("wind_speed_10m_max", NATIVE_WIND_SPEED, float),
-    ("wind_direction_10m_dominant", WIND_BEARING, float),
     ("wind_gusts_10m_max", NATIVE_WIND_GUST_SPEED, float),
+    ("wind_speed_10m_max", NATIVE_WIND_SPEED, float),
+    ("precipitation_probability_max", PRECIPITATION_PROBABILITY, int),
     ("uv_index_max", UV_INDEX, float),
+    ("wind_direction_10m_dominant", WIND_BEARING, float),
 )
 
 _HOURLY_MAP: tuple[tuple[str, str | None, type], ...] = (
     ("weather_code", None, int),
     ("is_day", None, bool),
-    ("temperature_2m", NATIVE_TEMP, float),
-    ("relative_humidity_2m", HUMIDITY, float),
-    ("dew_point_2m", NATIVE_DEW_POINT, float),
-    ("apparent_temperature", NATIVE_APPARENT_TEMP, float),
-    ("precipitation", NATIVE_PRECIPITATION, float),
-    ("precipitation_probability", PRECIPITATION_PROBABILITY, int),
     ("cloud_cover", CLOUD_COVERAGE, int),
+    ("relative_humidity_2m", HUMIDITY, float),
+    ("apparent_temperature", NATIVE_APPARENT_TEMP, float),
+    ("dew_point_2m", NATIVE_DEW_POINT, float),
+    ("precipitation", NATIVE_PRECIPITATION, float),
     ("pressure_msl", NATIVE_PRESSURE, float),
-    ("wind_speed_10m", NATIVE_WIND_SPEED, float),
-    ("wind_direction_10m", WIND_BEARING, float),
+    ("temperature_2m", NATIVE_TEMP, float),
     ("wind_gusts_10m", NATIVE_WIND_GUST_SPEED, float),
+    ("wind_speed_10m", NATIVE_WIND_SPEED, float),
+    ("precipitation_probability", PRECIPITATION_PROBABILITY, int),
     ("uv_index", UV_INDEX, float),
+    ("wind_direction_10m", WIND_BEARING, float),
 )
 
 
@@ -103,7 +107,7 @@ class OpenMeteoData:
     humidity: float | None
     dew_point: float | None
     apparent_temperature: float | None
-    cloud_coverage: float | None
+    cloud_coverage: int | None
     pressure: float | None
     visibility: float | None
     wind_speed: float | None
