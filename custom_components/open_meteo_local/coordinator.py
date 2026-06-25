@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openmeteo_sdk.WeatherApiResponse import WeatherApiResponse
 
@@ -41,6 +42,19 @@ from .const import (
 )
 
 type OpenMeteoConfigEntry = ConfigEntry[OpenMeteoDataUpdateCoordinator]
+
+
+def _response_timezone(response: WeatherApiResponse) -> ZoneInfo:
+    """Return the IANA timezone from the Open-Meteo response."""
+    timezone_name = response.Timezone()
+
+    if isinstance(timezone_name, bytes):
+        timezone_name = timezone_name.decode()
+
+    try:
+        return ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError as err:
+        raise UpdateFailed(f"Unknown Open-Meteo timezone: {timezone_name}") from err
 
 # (api_field_name, data_key, value_converter)
 # data_key=None: condition computation only (weather_code / is_day)
@@ -186,7 +200,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 self.config_entry.data[CONF_ZONE],
             )
 
-        tz = timezone(timedelta(seconds=response.UtcOffsetSeconds()))
+        tz = _response_timezone(response)
 
         # Current weather
         condition: str | None = None
