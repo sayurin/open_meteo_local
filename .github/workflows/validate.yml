@@ -26,4 +26,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@e91ad1948e57189485b9c1ad608af0c303946f89 # master
+        uses: home-assistant/actions/hassfest@e3fb68ebda13d88a0d695082f471ba2c83d025fb # master
