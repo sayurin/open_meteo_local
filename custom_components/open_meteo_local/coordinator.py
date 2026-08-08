@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 from openmeteo_sdk.WeatherApiResponse import WeatherApiResponse
 
@@ -186,8 +186,6 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 self.config_entry.data[CONF_ZONE],
             )
 
-        tz = timezone(timedelta(seconds=response.UtcOffsetSeconds()))
-
         # Current weather
         condition: str | None = None
         current_fields: dict[str, float | None] = {
@@ -206,7 +204,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         daily_forecast: list[Forecast] = []
         if (daily := response.Daily()) is not None:
             daily_forecast = [
-                Forecast(datetime=datetime.fromtimestamp(ts, tz=tz).isoformat())
+                Forecast(datetime=datetime.fromtimestamp(ts, tz=UTC).isoformat())
                 for ts in range(daily.Time(), daily.TimeEnd(), daily.Interval())
             ]
             wc = daily.Variables(0)
@@ -222,7 +220,7 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         hourly_forecast: list[Forecast] = []
         if (hourly := response.Hourly()) is not None:
             hourly_forecast = [
-                Forecast(datetime=datetime.fromtimestamp(ts, tz=tz).isoformat())
+                Forecast(datetime=datetime.fromtimestamp(ts, tz=UTC).isoformat())
                 for ts in range(hourly.Time(), hourly.TimeEnd(), hourly.Interval())
             ]
             wc_h, is_day_h = hourly.Variables(0), hourly.Variables(1)
