@@ -1,7 +1,5 @@
 """Support for Open-Meteo weather."""
 
-from __future__ import annotations
-
 from homeassistant.components.weather import (
     Forecast,
     SingleCoordinatorWeatherEntity,
