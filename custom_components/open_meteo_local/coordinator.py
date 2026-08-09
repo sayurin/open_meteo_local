@@ -1,7 +1,5 @@
 """DataUpdateCoordinator for the Open-Meteo integration."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
