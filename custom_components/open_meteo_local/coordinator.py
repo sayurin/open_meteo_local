@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from functools import cache
 
 from openmeteo_sdk.WeatherApiResponse import WeatherApiResponse
 
@@ -23,7 +24,7 @@ from homeassistant.components.weather import (
     Forecast,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE, CONF_ZONE
+from homeassistant.const import CONF_ZONE, EntityStateAttribute
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -96,6 +97,25 @@ _HOURLY_MAP: tuple[tuple[str, str | None, type], ...] = (
 )
 
 
+@cache
+def _get_params(latitude: float, longitude: float) -> dict[str, float | str]:
+    """Return cached Open-Meteo request parameters."""
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "current": ",".join(field for field, *_ in _CURRENT_MAP),
+        "daily": ",".join(field for field, *_ in _DAILY_MAP),
+        "hourly": ",".join(field for field, *_ in _HOURLY_MAP),
+        # Required by: https://github.com/open-meteo/open-meteo/issues/699
+        "forecast_hours": "168",
+        "format": "flatbuffers",
+        "precipitation_unit": "mm",
+        "temperature_unit": "celsius",
+        "timezone": "auto",
+        "wind_speed_unit": "kmh",
+    }
+
+
 @dataclass
 class OpenMeteoData:
     """Dataclass for Open-Meteo weather data."""
@@ -136,20 +156,10 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
         if (zone := self.hass.states.get(self.config_entry.data[CONF_ZONE])) is None:
             raise UpdateFailed(f"Zone '{self.config_entry.data[CONF_ZONE]}' not found")
 
-        params = {
-            "latitude": zone.attributes[ATTR_LATITUDE],
-            "longitude": zone.attributes[ATTR_LONGITUDE],
-            "current": ",".join(f for f, *_ in _CURRENT_MAP),
-            "daily": ",".join(f for f, *_ in _DAILY_MAP),
-            "hourly": ",".join(f for f, *_ in _HOURLY_MAP),
-            # Required by: https://github.com/open-meteo/open-meteo/issues/699
-            "forecast_hours": "168",
-            "format": "flatbuffers",
-            "precipitation_unit": "mm",
-            "temperature_unit": "celsius",
-            "timezone": "auto",
-            "wind_speed_unit": "kmh",
-        }
+        params = _get_params(
+            zone.attributes[EntityStateAttribute.LATITUDE],
+            zone.attributes[EntityStateAttribute.LONGITUDE],
+        )
 
         try:
             session = async_get_clientsession(self.hass)
