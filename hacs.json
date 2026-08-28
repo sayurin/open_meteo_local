@@ -1,5 +1,6 @@
 {
   "name": "Open-Meteo Enhanced",
+  "homeassistant": "2026.8.0",
   "zip_release": true,
   "filename": "open_meteo_local.zip"
 }
