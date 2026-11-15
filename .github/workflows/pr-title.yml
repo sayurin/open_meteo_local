@@ -1,0 +1,34 @@
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version-file: .python-version
+      - uses: actions/checkout@v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Validate pull request title
+        working-directory: base
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ -f scripts/check_commit_messages.py ]; then
+            python -c 'import os,sys; from scripts.check_commit_messages import valid_subject; sys.exit(not valid_subject(os.environ["PR_TITLE"]))'
+          else
+            python -c 'import os,re,sys; sys.exit(re.fullmatch(r"[a-z][a-z0-9-]*(?:\([^()\r\n]+\))?!?: \S.*", os.environ["PR_TITLE"]) is None)'
+          fi

@@ -96,6 +96,7 @@ This integration provides more accurate condition mapping:
 
 ## Prerequisites
 
+- Home Assistant 2026.11.0 or later
 - Home Assistant with [HACS](https://hacs.xyz/) installed (for HACS installation) or access to the `custom_components` directory (for manual installation)
 - Internet access to reach the [Open-Meteo API](https://open-meteo.com/) — no account or API key required
 - At least one zone configured in Home Assistant to use as the weather location (**Settings → Areas, labels & zones**)

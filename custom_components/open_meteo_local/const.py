@@ -1,7 +1,7 @@
 """Constants for the Open-Meteo integration."""
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from typing import Final
 
 from homeassistant.components.weather import (
