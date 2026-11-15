@@ -7,7 +7,7 @@ requires-python = ">=3.14.2"
 dev = [
     "codespell",
     "mypy",
-    "openmeteo-sdk==1.27.2",
+    "openmeteo-sdk==1.30.0",
     "pre-commit-hooks",
     "prek",
     "pytest-cov",
