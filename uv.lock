@@ -1851,7 +1851,7 @@ version = "2.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ast-serialize" },
-    { name = "librt", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-20-open-meteo-local-dev-ha-latest' and extra == 'extra-20-open-meteo-local-dev-ha-minimum')" },
+    { name = "librt", marker = "platform_python_implementation != 'PyPy'" },
     { name = "mypy-extensions" },
     { name = "pathspec" },
     { name = "typing-extensions" },
@@ -1922,7 +1922,7 @@ ha-minimum = [
 requires-dist = [
     { name = "codespell", marker = "extra == 'dev'" },
     { name = "mypy", marker = "extra == 'dev'" },
-    { name = "openmeteo-sdk", marker = "extra == 'dev'", specifier = "==1.27.2" },
+    { name = "openmeteo-sdk", marker = "extra == 'dev'", specifier = "==1.30.0" },
     { name = "pre-commit-hooks", marker = "extra == 'dev'" },
     { name = "prek", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
@@ -1934,14 +1934,14 @@ provides-extras = ["dev", "ha-minimum", "ha-latest"]
 
 [[package]]
 name = "openmeteo-sdk"
-version = "1.27.2"
+version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/61/11/68390b5ce2124d07b5aa55ad9ed9839146016856f319d31cbe3ca94ac84f/openmeteo_sdk-1.27.2.tar.gz", hash = "sha256:158444c01572a354c7a6bf1e6460040d9ed19ce44ce5ca43cf8679af2ec4148c", size = 12519, upload-time = "2026-06-15T16:20:24.26Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/c2/0e813c57c380d87547ddd05f0f83cffc087dc5407afcee1bf045e1e12243/openmeteo_sdk-1.30.0.tar.gz", hash = "sha256:9b643ce593a557eddc880f8526da9c3700ef96f4388e6f43b5e2cadb6d92cff4", size = 13311, upload-time = "2026-10-30T15:31:52.179Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/04/8bed856a877f6e95fec9e2cba4195b4712ac03dff43de43631d4e87af75c/openmeteo_sdk-1.27.2-py3-none-any.whl", hash = "sha256:1dad4b26b37bcb76430e279772431865cb21e75d6f52330f58b1d7508a15bab3", size = 19591, upload-time = "2026-06-15T16:20:23.099Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/3b/f205b41b0eda5c22f642d3aae8f233d5693a5a15e708177e6d42593c8e5b/openmeteo_sdk-1.30.0-py3-none-any.whl", hash = "sha256:59df0e8ded1dff6d1a024de41a685c411f435c47270b774fffd23c023e990fd1", size = 20493, upload-time = "2026-10-30T15:31:51.05Z" },
 ]
 
 [[package]]
@@ -2456,7 +2456,7 @@ name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-20-open-meteo-local-dev-ha-latest' and extra == 'extra-20-open-meteo-local-dev-ha-minimum')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
