@@ -19,6 +19,12 @@ The Home Assistant extras are mutually exclusive. Each pins an official
 `pytest-homeassistant` version and its matching Home Assistant version. The
 offline tests do not establish that the real Open-Meteo API works.
 
+The lifecycle, configuration, weather and diagnostics tests are adapted from
+Home Assistant's `tests/components/open_meteo`. This integration retains its
+zone-based unique IDs and does not implement Core's connection check,
+reconfiguration flow or unique-ID migration. Its tests use FlatBuffers rather
+than Core's JSON forecast fixture.
+
 Mypy currently checks the constants, diagnostics and weather modules; the
 configuration flow and coordinator require further type work. Prek runs with
 `--no-sync` to preserve the selected HA environment; sync the selected extras
