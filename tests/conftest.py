@@ -21,12 +21,17 @@ def mock_config_entry():
     )
 
 
-def _section(builder, values, start, interval):
+def _section(builder, values, start, interval, count=2, missing=()):
     variables = []
-    for value in values:
+    for index, value in enumerate(values):
         if isinstance(value, tuple):
-            builder.StartVector(4, len(value), 4)
-            for item in reversed(value):
+            builder.StartVector(4, count, 4)
+            for i in reversed(range(count)):
+                item = (
+                    float("nan")
+                    if i == count - 1 and index in missing
+                    else value[i % len(value)]
+                )
                 builder.PrependFloat32(item)
             array = builder.EndVector()
             builder.StartObject(13)
@@ -41,26 +46,28 @@ def _section(builder, values, start, interval):
     vector = builder.EndVector()
     builder.StartObject(4)
     builder.PrependInt64Slot(0, start, 0)
-    builder.PrependInt64Slot(1, start + interval * 2, 0)
+    builder.PrependInt64Slot(1, start + interval * count, 0)
     builder.PrependInt32Slot(2, interval, 0)
     builder.PrependUOffsetTRelativeSlot(3, vector, 0)
     return builder.EndObject()
 
 
 @pytest.fixture
-def forecast_payload():
+def forecast_payload(request):
     """Build a real size-prefixed FlatBuffers response with local-day boundaries."""
+    options = getattr(request, "param", {})
+    weather_code = options.get("weather_code", 0)
     builder = flatbuffers.Builder(1024)
     current = _section(
         builder,
-        [0, 0, 30, 65, 18, 12, 1010, 20, 10000, 25, 10, 4, 180],
+        [weather_code, 0, 30, 65, 18, 12, 1010, 20, 10000, 25, 10, 4, 180],
         0,
         3600,
     )
     daily = _section(
         builder,
         [
-            (0, 3),
+            (weather_code, 3),
             (30, 40),
             (65, 70),
             (18, 19),
@@ -77,11 +84,13 @@ def forecast_payload():
         ],
         1735657200,
         86400,
+        count=options.get("daily_steps", 2),
+        missing=options.get("daily_missing", ()),
     )
     hourly = _section(
         builder,
         [
-            (0, 0),
+            (weather_code, 0),
             (0, 1),
             (30, 40),
             (65, 70),
@@ -98,6 +107,8 @@ def forecast_payload():
         ],
         1735686000,
         3600,
+        count=options.get("hourly_steps", 2),
+        missing=options.get("hourly_missing", ()),
     )
     builder.StartObject(15)
     builder.PrependUOffsetTRelativeSlot(9, current, 0)

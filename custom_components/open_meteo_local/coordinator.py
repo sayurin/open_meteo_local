@@ -3,53 +3,24 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import cache
+from math import isnan
 
 from homeassistant.components.weather import (
-    ATTR_FORECAST_CLOUD_COVERAGE as CLOUD_COVERAGE,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_CONDITION as CONDITION,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_HUMIDITY as HUMIDITY,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_IS_DAYTIME as IS_DAYTIME,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_APPARENT_TEMP as NATIVE_APPARENT_TEMP,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_DEW_POINT as NATIVE_DEW_POINT,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_PRECIPITATION as NATIVE_PRECIPITATION,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_PRESSURE as NATIVE_PRESSURE,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_TEMP as NATIVE_TEMP,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_TEMP_LOW as NATIVE_TEMP_LOW,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_WIND_GUST_SPEED as NATIVE_WIND_GUST_SPEED,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_NATIVE_WIND_SPEED as NATIVE_WIND_SPEED,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_PRECIPITATION_PROBABILITY as PRECIPITATION_PROBABILITY,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_UV_INDEX as UV_INDEX,
-)
-from homeassistant.components.weather import (
-    ATTR_FORECAST_WIND_BEARING as WIND_BEARING,
-)
-from homeassistant.components.weather import (
+    ATTR_FORECAST_CLOUD_COVERAGE,
+    ATTR_FORECAST_CONDITION,
+    ATTR_FORECAST_HUMIDITY,
+    ATTR_FORECAST_IS_DAYTIME,
+    ATTR_FORECAST_NATIVE_APPARENT_TEMP,
+    ATTR_FORECAST_NATIVE_DEW_POINT,
+    ATTR_FORECAST_NATIVE_PRECIPITATION,
+    ATTR_FORECAST_NATIVE_PRESSURE,
+    ATTR_FORECAST_NATIVE_TEMP,
+    ATTR_FORECAST_NATIVE_TEMP_LOW,
+    ATTR_FORECAST_NATIVE_WIND_GUST_SPEED,
+    ATTR_FORECAST_NATIVE_WIND_SPEED,
+    ATTR_FORECAST_PRECIPITATION_PROBABILITY,
+    ATTR_FORECAST_UV_INDEX,
+    ATTR_FORECAST_WIND_BEARING,
     Forecast,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -76,52 +47,56 @@ CONDITION_INDEX = 0
 
 _CURRENT_MAP = (
     ("weather_code", None, int),
-    ("is_day", IS_DAYTIME, bool),
-    ("cloud_cover", CLOUD_COVERAGE, int),
-    ("relative_humidity_2m", HUMIDITY, float),
-    ("apparent_temperature", NATIVE_APPARENT_TEMP, float),
-    ("dew_point_2m", NATIVE_DEW_POINT, float),
-    ("pressure_msl", NATIVE_PRESSURE, float),
-    ("temperature_2m", NATIVE_TEMP, float),
+    ("is_day", ATTR_FORECAST_IS_DAYTIME, bool),
+    ("cloud_cover", ATTR_FORECAST_CLOUD_COVERAGE, int),
+    ("relative_humidity_2m", ATTR_FORECAST_HUMIDITY, float),
+    ("apparent_temperature", ATTR_FORECAST_NATIVE_APPARENT_TEMP, float),
+    ("dew_point_2m", ATTR_FORECAST_NATIVE_DEW_POINT, float),
+    ("pressure_msl", ATTR_FORECAST_NATIVE_PRESSURE, float),
+    ("temperature_2m", ATTR_FORECAST_NATIVE_TEMP, float),
     ("visibility", "native_visibility", lambda value: float(value) / 1000),
-    ("wind_gusts_10m", NATIVE_WIND_GUST_SPEED, float),
-    ("wind_speed_10m", NATIVE_WIND_SPEED, float),
-    ("uv_index", UV_INDEX, float),
-    ("wind_direction_10m", WIND_BEARING, float),
+    ("wind_gusts_10m", ATTR_FORECAST_NATIVE_WIND_GUST_SPEED, float),
+    ("wind_speed_10m", ATTR_FORECAST_NATIVE_WIND_SPEED, float),
+    ("uv_index", ATTR_FORECAST_UV_INDEX, float),
+    ("wind_direction_10m", ATTR_FORECAST_WIND_BEARING, float),
 )
 
 _DAILY_MAP = (
-    ("weather_code", CONDITION, lambda value: resolve_condition(int(value))),
-    ("cloud_cover_mean", CLOUD_COVERAGE, int),
-    ("relative_humidity_2m_mean", HUMIDITY, float),
-    ("apparent_temperature_mean", NATIVE_APPARENT_TEMP, float),
-    ("dew_point_2m_mean", NATIVE_DEW_POINT, float),
-    ("precipitation_sum", NATIVE_PRECIPITATION, float),
-    ("pressure_msl_mean", NATIVE_PRESSURE, float),
-    ("temperature_2m_max", NATIVE_TEMP, float),
-    ("temperature_2m_min", NATIVE_TEMP_LOW, float),
-    ("wind_gusts_10m_max", NATIVE_WIND_GUST_SPEED, float),
-    ("wind_speed_10m_max", NATIVE_WIND_SPEED, float),
-    ("precipitation_probability_max", PRECIPITATION_PROBABILITY, int),
-    ("uv_index_max", UV_INDEX, float),
-    ("wind_direction_10m_dominant", WIND_BEARING, float),
+    (
+        "weather_code",
+        ATTR_FORECAST_CONDITION,
+        lambda value: resolve_condition(int(value)),
+    ),
+    ("cloud_cover_mean", ATTR_FORECAST_CLOUD_COVERAGE, int),
+    ("relative_humidity_2m_mean", ATTR_FORECAST_HUMIDITY, float),
+    ("apparent_temperature_mean", ATTR_FORECAST_NATIVE_APPARENT_TEMP, float),
+    ("dew_point_2m_mean", ATTR_FORECAST_NATIVE_DEW_POINT, float),
+    ("precipitation_sum", ATTR_FORECAST_NATIVE_PRECIPITATION, float),
+    ("pressure_msl_mean", ATTR_FORECAST_NATIVE_PRESSURE, float),
+    ("temperature_2m_max", ATTR_FORECAST_NATIVE_TEMP, float),
+    ("temperature_2m_min", ATTR_FORECAST_NATIVE_TEMP_LOW, float),
+    ("wind_gusts_10m_max", ATTR_FORECAST_NATIVE_WIND_GUST_SPEED, float),
+    ("wind_speed_10m_max", ATTR_FORECAST_NATIVE_WIND_SPEED, float),
+    ("precipitation_probability_max", ATTR_FORECAST_PRECIPITATION_PROBABILITY, int),
+    ("uv_index_max", ATTR_FORECAST_UV_INDEX, float),
+    ("wind_direction_10m_dominant", ATTR_FORECAST_WIND_BEARING, float),
 )
 
 _HOURLY_MAP = (
     ("weather_code", None, int),
-    ("is_day", IS_DAYTIME, bool),
-    ("cloud_cover", CLOUD_COVERAGE, int),
-    ("relative_humidity_2m", HUMIDITY, float),
-    ("apparent_temperature", NATIVE_APPARENT_TEMP, float),
-    ("dew_point_2m", NATIVE_DEW_POINT, float),
-    ("precipitation", NATIVE_PRECIPITATION, float),
-    ("pressure_msl", NATIVE_PRESSURE, float),
-    ("temperature_2m", NATIVE_TEMP, float),
-    ("wind_gusts_10m", NATIVE_WIND_GUST_SPEED, float),
-    ("wind_speed_10m", NATIVE_WIND_SPEED, float),
-    ("precipitation_probability", PRECIPITATION_PROBABILITY, int),
-    ("uv_index", UV_INDEX, float),
-    ("wind_direction_10m", WIND_BEARING, float),
+    ("is_day", ATTR_FORECAST_IS_DAYTIME, bool),
+    ("cloud_cover", ATTR_FORECAST_CLOUD_COVERAGE, int),
+    ("relative_humidity_2m", ATTR_FORECAST_HUMIDITY, float),
+    ("apparent_temperature", ATTR_FORECAST_NATIVE_APPARENT_TEMP, float),
+    ("dew_point_2m", ATTR_FORECAST_NATIVE_DEW_POINT, float),
+    ("precipitation", ATTR_FORECAST_NATIVE_PRECIPITATION, float),
+    ("pressure_msl", ATTR_FORECAST_NATIVE_PRESSURE, float),
+    ("temperature_2m", ATTR_FORECAST_NATIVE_TEMP, float),
+    ("wind_gusts_10m", ATTR_FORECAST_NATIVE_WIND_GUST_SPEED, float),
+    ("wind_speed_10m", ATTR_FORECAST_NATIVE_WIND_SPEED, float),
+    ("precipitation_probability", ATTR_FORECAST_PRECIPITATION_PROBABILITY, int),
+    ("uv_index", ATTR_FORECAST_UV_INDEX, float),
+    ("wind_direction_10m", ATTR_FORECAST_WIND_BEARING, float),
 )
 
 
@@ -134,8 +109,9 @@ def _get_params(latitude: float, longitude: float) -> dict[str, float | str]:
         "current": ",".join(field for field, *_ in _CURRENT_MAP),
         "daily": ",".join(field for field, *_ in _DAILY_MAP),
         "hourly": ",".join(field for field, *_ in _HOURLY_MAP),
+        "forecast_days": "16",
         # Required by: https://github.com/open-meteo/open-meteo/issues/699
-        "forecast_hours": "168",
+        "forecast_hours": "384",
         "format": "flatbuffers",
         "precipitation_unit": "mm",
         "temperature_unit": "celsius",
@@ -245,7 +221,8 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
             for j, (_, ha_key, conv) in enumerate(_DAILY_MAP):
                 var = daily.Variables(j)
                 for i, entry in enumerate(daily_forecast):
-                    entry[ha_key] = conv(var.Values(i))
+                    value = var.Values(i)
+                    entry[ha_key] = None if isnan(value) else conv(value)
 
         # Hourly forecast
         hourly_forecast: list[Forecast] = []
@@ -258,12 +235,15 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 if ha_key is not None:
                     var = hourly.Variables(j)
                     for i, entry in enumerate(hourly_forecast):
-                        entry[ha_key] = conv(var.Values(i))
+                        value = var.Values(i)
+                        entry[ha_key] = None if isnan(value) else conv(value)
             condition_var = hourly.Variables(CONDITION_INDEX)
             for i, entry in enumerate(hourly_forecast):
-                entry[CONDITION] = resolve_condition(
-                    int(condition_var.Values(i)),
-                    bool(entry[IS_DAYTIME]),
+                value = condition_var.Values(i)
+                entry[ATTR_FORECAST_CONDITION] = (
+                    None
+                    if isnan(value)
+                    else resolve_condition(int(value), entry[ATTR_FORECAST_IS_DAYTIME])
                 )
 
         data.daily_forecast = daily_forecast
