@@ -57,6 +57,7 @@ WMO_TO_HA_CONDITION_MAP = {
     86: ATTR_CONDITION_SNOWY,  # Snow showers: Heavy intensity
     95: ATTR_CONDITION_LIGHTNING_RAINY,  # Thunderstorm: Slight and moderate intensity
     96: ATTR_CONDITION_HAIL,  # Thunderstorm with slight hail
+    97: ATTR_CONDITION_LIGHTNING_RAINY,  # Heavy thunderstorm
     99: ATTR_CONDITION_HAIL,  # Thunderstorm with heavy hail
 }
 

@@ -48,19 +48,20 @@ def _section(builder, values, start, interval):
 
 
 @pytest.fixture
-def forecast_payload():
+def forecast_payload(request):
     """Build a real size-prefixed FlatBuffers response with local-day boundaries."""
+    weather_code = getattr(request, "param", 0)
     builder = flatbuffers.Builder(1024)
     current = _section(
         builder,
-        [0, 0, 30, 65, 18, 12, 1010, 20, 10000, 25, 10, 4, 180],
+        [weather_code, 0, 30, 65, 18, 12, 1010, 20, 10000, 25, 10, 4, 180],
         0,
         3600,
     )
     daily = _section(
         builder,
         [
-            (0, 3),
+            (weather_code, 3),
             (30, 40),
             (65, 70),
             (18, 19),
@@ -81,7 +82,7 @@ def forecast_payload():
     hourly = _section(
         builder,
         [
-            (0, 0),
+            (weather_code, 0),
             (0, 1),
             (30, 40),
             (65, 70),

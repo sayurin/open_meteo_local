@@ -44,6 +44,23 @@ async def test_load_forecasts_and_unload(hass, mock_config_entry, mock_open_mete
     assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
 
 
+@pytest.mark.parametrize("forecast_payload", [97], indirect=True)
+async def test_heavy_thunderstorm_condition(hass, mock_config_entry, mock_open_meteo):
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    assert hass.states.get("weather.home").state == "lightning-rainy"
+
+    for forecast_type in ("daily", "hourly"):
+        response = await hass.services.async_call(
+            WEATHER_DOMAIN,
+            "get_forecasts",
+            {ATTR_ENTITY_ID: "weather.home", "type": forecast_type},
+            blocking=True,
+            return_response=True,
+        )
+        assert response["weather.home"]["forecast"][0]["condition"] == "lightning-rainy"
+
+
 async def test_connection_failure_and_recovery(
     hass, mock_config_entry, mock_open_meteo
 ):
