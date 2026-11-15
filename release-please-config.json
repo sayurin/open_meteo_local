@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "last-release-sha": "49027d5d01c95f2ee8d27cf998e40023a258fb46",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "include-component-in-tag": false,
+      "draft": true,
+      "force-tag-creation": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "custom_components/open_meteo_local/manifest.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}
