@@ -35,7 +35,7 @@ jobs:
             echo "::error::Configure APP_ID and APP_PRIVATE_KEY for the release GitHub App."
             exit 1
           fi
-      - uses: actions/create-github-app-token@v2.2.2
+      - uses: actions/create-github-app-token@v3.3.0
         id: app
         with:
           app-id: ${{ vars.APP_ID }}
