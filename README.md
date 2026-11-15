@@ -19,6 +19,7 @@ In addition, this integration exposes additional weather attributes and uses mor
 - **Local timezone**: Daily forecast aggregation uses local calendar days instead of UTC days.
 - **FlatBuffers format**: Uses `openmeteo-sdk` for efficient binary parsing instead of the JSON-based `open-meteo` library.
 - **Faster updates**: Polls every 15 minutes (built-in is 30 minutes).
+- **Extended forecasts**: Requests up to 16 local calendar days and 384 hours from the current hour. Data availability varies by location, model, and forecast time; missing values are returned as unavailable.
 
 ### Attribute comparison
 

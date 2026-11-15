@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import cache
+from math import isnan
 
 from homeassistant.components.weather import (
     ATTR_FORECAST_CLOUD_COVERAGE,
@@ -108,8 +109,9 @@ def _get_params(latitude: float, longitude: float) -> dict[str, float | str]:
         "current": ",".join(field for field, *_ in _CURRENT_MAP),
         "daily": ",".join(field for field, *_ in _DAILY_MAP),
         "hourly": ",".join(field for field, *_ in _HOURLY_MAP),
+        "forecast_days": "16",
         # Required by: https://github.com/open-meteo/open-meteo/issues/699
-        "forecast_hours": "168",
+        "forecast_hours": "384",
         "format": "flatbuffers",
         "precipitation_unit": "mm",
         "temperature_unit": "celsius",
@@ -219,7 +221,8 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
             for j, (_, ha_key, conv) in enumerate(_DAILY_MAP):
                 var = daily.Variables(j)
                 for i, entry in enumerate(daily_forecast):
-                    entry[ha_key] = conv(var.Values(i))
+                    value = var.Values(i)
+                    entry[ha_key] = None if isnan(value) else conv(value)
 
         # Hourly forecast
         hourly_forecast: list[Forecast] = []
@@ -232,12 +235,15 @@ class OpenMeteoDataUpdateCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                 if ha_key is not None:
                     var = hourly.Variables(j)
                     for i, entry in enumerate(hourly_forecast):
-                        entry[ha_key] = conv(var.Values(i))
+                        value = var.Values(i)
+                        entry[ha_key] = None if isnan(value) else conv(value)
             condition_var = hourly.Variables(CONDITION_INDEX)
             for i, entry in enumerate(hourly_forecast):
-                entry[ATTR_FORECAST_CONDITION] = resolve_condition(
-                    int(condition_var.Values(i)),
-                    bool(entry[ATTR_FORECAST_IS_DAYTIME]),
+                value = condition_var.Values(i)
+                entry[ATTR_FORECAST_CONDITION] = (
+                    None
+                    if isnan(value)
+                    else resolve_condition(int(value), entry[ATTR_FORECAST_IS_DAYTIME])
                 )
 
         data.daily_forecast = daily_forecast

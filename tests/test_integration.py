@@ -40,11 +40,13 @@ async def test_load_forecasts_and_unload(hass, mock_config_entry, mock_open_mete
     _, kwargs = mock_open_meteo[0].get.call_args
     assert kwargs["params"]["timezone"] == "auto"
     assert kwargs["params"]["format"] == "flatbuffers"
+    assert kwargs["params"]["forecast_days"] == "16"
+    assert kwargs["params"]["forecast_hours"] == "384"
     assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
     assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
 
 
-@pytest.mark.parametrize("forecast_payload", [97], indirect=True)
+@pytest.mark.parametrize("forecast_payload", [{"weather_code": 97}], indirect=True)
 async def test_heavy_thunderstorm_condition(hass, mock_config_entry, mock_open_meteo):
     mock_config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
@@ -59,6 +61,57 @@ async def test_heavy_thunderstorm_condition(hass, mock_config_entry, mock_open_m
             return_response=True,
         )
         assert response["weather.home"]["forecast"][0]["condition"] == "lightning-rainy"
+
+
+@pytest.mark.parametrize(
+    "forecast_payload",
+    [
+        {
+            "daily_steps": 16,
+            "hourly_steps": 384,
+            "daily_missing": (0, 1, 7, 11),
+            "hourly_missing": (1, 2, 8, 11),
+        }
+    ],
+    indirect=True,
+)
+async def test_maximum_forecasts_with_missing_values(
+    hass, mock_config_entry, mock_open_meteo
+):
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+    for forecast_type, count in (("daily", 16), ("hourly", 384)):
+        response = await hass.services.async_call(
+            WEATHER_DOMAIN,
+            "get_forecasts",
+            {ATTR_ENTITY_ID: "weather.home", "type": forecast_type},
+            blocking=True,
+            return_response=True,
+        )
+        forecasts = response["weather.home"]["forecast"]
+        assert len(forecasts) == count
+        last = forecasts[-1]
+        assert last["temperature"] is None
+        assert last["cloud_coverage"] is None
+        assert last["precipitation_probability"] is None
+        assert last["condition"] == (None if forecast_type == "daily" else "sunny")
+        if forecast_type == "hourly":
+            assert last["is_daytime"] is None
+
+
+@pytest.mark.parametrize("forecast_payload", [{"hourly_missing": (0,)}], indirect=True)
+async def test_missing_hourly_weather_code(hass, mock_config_entry, mock_open_meteo):
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    response = await hass.services.async_call(
+        WEATHER_DOMAIN,
+        "get_forecasts",
+        {ATTR_ENTITY_ID: "weather.home", "type": "hourly"},
+        blocking=True,
+        return_response=True,
+    )
+    assert response["weather.home"]["forecast"][-1]["condition"] is None
 
 
 async def test_connection_failure_and_recovery(
