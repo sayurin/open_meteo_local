@@ -31,13 +31,16 @@ configuration flow and coordinator require further type work. Prek runs with
 before running it. Install `gh actions-lock` v0.4.1 to update the workflow lock
 and never edit the generated lock manually.
 
-## Draft releases
+## Pre-release recovery
 
-Release Please creates a PR and a draft release using the repository GitHub
-App. `APP_ID` and `APP_PRIVATE_KEY` must be configured before this can work.
-Review the draft and its ZIP before publishing a stable release manually.
-Draft creation also creates a tag: verify HACS tag discovery before merging a
-release PR. To recover a draft attachment, run the Release workflow with its
-existing tag. The workflow verifies the tag, committed versions and draft
-status and replaces the same-named asset. Do not recover while publishing.
-Published releases are not recovery targets.
+Release Please creates a public pre-release and tag when its release PR is
+merged. Before merging, review the release notes and state that pre-releases
+may be delivered to HACS users who enable them. Do not mark the release as
+latest; promote it to a stable release only after human verification.
+
+To recover a missing ZIP, manually run the Release workflow on `master` with
+the existing published pre-release tag (for example, `v0.1.6`). The workflow
+checks out that tag and verifies its revision, version, and pre-release status
+before building. It adds `open_meteo_local.zip` only when missing; an existing
+asset must match byte-for-byte or recovery fails. Never run recovery while
+someone is promoting the release.

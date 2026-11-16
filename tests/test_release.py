@@ -7,8 +7,11 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+import yaml
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "build_release.py"
+ROOT = SCRIPT.parents[1]
+WORKFLOW = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
 
 
 @pytest.fixture
@@ -85,3 +88,43 @@ def test_rejects_symlink_in_archive(release_repo):
     result = build(repo, git)
     assert result.returncode != 0
     assert "Unexpected archive member" in result.stderr
+
+
+def test_release_configuration_publishes_a_prerelease():
+    config = json.loads((ROOT / "release-please-config.json").read_text())
+    assert not config["packages"]["."]["draft"]
+    assert config["packages"]["."]["prerelease"]
+    assert config["packages"]["."]["force-tag-creation"]
+    assert WORKFLOW["jobs"]["release"]["if"] == "github.event_name == 'push'"
+
+
+def test_release_and_recovery_only_attach_verified_archives():
+    events = WORKFLOW[True]
+    assert events["workflow_dispatch"]["inputs"]["release_tag"]["required"]
+    jobs = WORKFLOW["jobs"]
+    package = jobs["package"]
+    assert "always()" in package["if"]
+    assert "github.event_name == 'workflow_dispatch'" in package["if"]
+    assert "needs.recover.result == 'success'" in package["if"]
+    assert jobs["recover"]["if"] == (
+        "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'"
+    )
+    assert package["needs"] == ["release", "recover"]
+    assert jobs["recover"]["steps"][0]["with"]["ref"] == "${{ github.sha }}"
+    assert package["steps"][0]["with"]["ref"] == (
+        "${{ needs.recover.outputs.sha || needs.release.outputs.sha }}"
+    )
+    verify = next(
+        step
+        for step in package["steps"]
+        if step.get("name") == "Verify published pre-release and tag revision"
+    )
+    assert "isPrerelease" in verify["run"]
+    assert "isDraft" in verify["run"]
+    upload = package["steps"][-1]
+    assert "gh release download" in upload["run"]
+    assert "cmp --silent" in upload["run"]
+    assert "gh release upload" in upload["run"]
+    assert "--clobber" not in json.dumps(WORKFLOW)
+    assert "gh release create" not in json.dumps(WORKFLOW)
+    assert "isPrerelease" in jobs["recover"]["steps"][1]["run"]
