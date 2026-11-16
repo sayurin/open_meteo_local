@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing draft release tag to rebuild, for example v0.1.6
-        required: false
+        description: Existing published pre-release tag to safely retry
+        required: true
         type: string
 
 permissions:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.event_name != 'workflow_dispatch' || inputs.release_tag == ''
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -49,73 +49,60 @@ jobs:
           token: ${{ steps.app.outputs.token }}
           target-branch: master
 
-  package:
-    needs: release
-    if: needs.release.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4.4.0
-        with:
-          ref: ${{ needs.release.outputs.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-python@v7.1.0
-        with:
-          python-version-file: .python-version
-      - uses: astral-sh/setup-uv@v10.3.3
-        with:
-          version: 0.13.1
-      - run: uv sync --locked --extra dev --extra ha-minimum
-      - run: uv run --locked --extra dev --extra ha-minimum pytest
-      - uses: home-assistant/actions/hassfest@master
-      - name: Build integration ZIP
-        env:
-          RELEASE_TAG: ${{ needs.release.outputs.tag }}
-          RELEASE_SHA: ${{ needs.release.outputs.sha }}
-        run: python scripts/build_release.py
-      - name: Attach ZIP to draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true ]
-          gh release upload "$RELEASE_TAG" dist/open_meteo_local.zip --clobber
-
   recover:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && inputs.release_tag != ''
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
     steps:
       - uses: actions/checkout@v4.4.0
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Validate release tag and draft status
+      - name: Validate published pre-release and resolve tag
+        id: revision
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          release="$(gh release view "$RELEASE_TAG" --json isDraft,tagName)"
-          [ "$(jq -r .isDraft <<<"$release")" = true ]
-          [ "$(jq -r .tagName <<<"$release")" = "$RELEASE_TAG" ]
-      - name: Resolve release commit
-        id: revision
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: echo "sha=$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" >> "$GITHUB_OUTPUT"
+          release="$(gh release view "$RELEASE_TAG" --json isDraft,isPrerelease,tagName)"
+          [[ "$(jq -r .tagName <<<"$release")" == "$RELEASE_TAG" ]]
+          [[ "$(jq -r .isDraft <<<"$release")" == false ]]
+          [[ "$(jq -r .isPrerelease <<<"$release")" == true ]]
+          echo "sha=$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: [release, recover]
+    if: |
+      always() &&
+      (
+        (github.event_name == 'push' && needs.release.result == 'success' && needs.release.outputs.release_created == 'true')
+        || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && needs.recover.result == 'success')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       - uses: actions/checkout@v4.4.0
         with:
-          ref: ${{ steps.revision.outputs.sha }}
+          ref: ${{ needs.recover.outputs.sha || needs.release.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify published pre-release and tag revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || needs.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          release="$(gh release view "$RELEASE_TAG" --json isDraft,isPrerelease,tagName)"
+          [[ "$(jq -r .tagName <<<"$release")" == "$RELEASE_TAG" ]]
+          [[ "$(jq -r .isDraft <<<"$release")" == false ]]
+          [[ "$(jq -r .isPrerelease <<<"$release")" == true ]]
+          [[ "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" == "$(git rev-parse HEAD)" ]]
       - uses: actions/setup-python@v7.1.0
         with:
           python-version-file: .python-version
@@ -127,16 +114,28 @@ jobs:
       - uses: home-assistant/actions/hassfest@master
       - name: Build integration ZIP
         env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
-          RELEASE_SHA: ${{ steps.revision.outputs.sha }}
-        run: python scripts/build_release.py
-      - name: Replace ZIP on draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag || needs.release.outputs.tag }}
         run: |
           set -euo pipefail
-          release="$(gh release view "$RELEASE_TAG" --json isDraft,tagName)"
-          [ "$(jq -r .isDraft <<<"$release")" = true ]
-          [ "$(jq -r .tagName <<<"$release")" = "$RELEASE_TAG" ]
-          gh release upload "$RELEASE_TAG" dist/open_meteo_local.zip --clobber
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          export RELEASE_SHA
+          python scripts/build_release.py
+      - name: Attach ZIP without replacing an existing asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag || needs.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          asset_names="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')"
+          asset="dist/open_meteo_local.zip"
+          if grep -Fqx -- "$(basename "$asset")" <<<"$asset_names"; then
+            mkdir -p "$RUNNER_TEMP/release-assets"
+            gh release download "$RELEASE_TAG" --pattern "$(basename "$asset")" --dir "$RUNNER_TEMP/release-assets"
+            if ! cmp --silent "$asset" "$RUNNER_TEMP/release-assets/$(basename "$asset")"; then
+              echo "::error::Existing release ZIP does not match the rebuilt archive."
+              exit 1
+            fi
+          else
+            gh release upload "$RELEASE_TAG" "$asset"
+          fi
