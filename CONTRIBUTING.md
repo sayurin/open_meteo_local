@@ -3,6 +3,9 @@
 Use English Conventional Commit subjects and PR titles, for example
 `fix: handle a failed request` or `chore(deps): update dependencies`. Use the
 PR title as the squash-merge commit subject. A breaking change uses `!`.
+Use one of `feat`, `fix`, `perf`, `deps`, `revert`, `docs`, `style`, `chore`,
+`refactor`, `test`, `build`, or `ci`. CI checks the title and non-merge commit
+subjects.
 
 The development project is not a distributable Python package; `version.txt`
 and the integration manifest are managed by Release Please. Python 3.14.10 and

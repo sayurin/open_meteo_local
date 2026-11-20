@@ -5,12 +5,29 @@ import re
 import subprocess
 import sys
 
-SUBJECT = re.compile(r"^[a-z][a-z0-9-]*(?:\([^()\r\n]+\))?!?: \S.*$")
+SUBJECT = re.compile(r"(?P<type>[a-z][a-z0-9-]*)(?:\([^()\r\n]+\))?!?: \S[^\r\n]*")
+ALLOWED_TYPES = frozenset(
+    {
+        "feat",
+        "fix",
+        "perf",
+        "deps",
+        "revert",
+        "docs",
+        "style",
+        "chore",
+        "refactor",
+        "test",
+        "build",
+        "ci",
+    }
+)
 
 
 def valid_subject(subject: str) -> bool:
     """Return whether a subject has a Conventional Commit header."""
-    return SUBJECT.fullmatch(subject) is not None
+    match = SUBJECT.fullmatch(subject)
+    return match is not None and match.group("type") in ALLOWED_TYPES
 
 
 def main() -> int:
