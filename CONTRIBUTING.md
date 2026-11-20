@@ -13,14 +13,13 @@ uv 0.13.1 or later are required. Bootstrap the workspace after changing
 dependencies or switching branches. Run the independent test environment via:
 
 ```shell
-bash scripts/hass-dev.sh run open_meteo_local uv run --locked --extra dev --extra ha-minimum pytest
-bash scripts/hass-dev.sh run open_meteo_local uv run --locked --extra dev --extra ha-latest pytest
-bash scripts/hass-dev.sh run open_meteo_local uv run --locked --extra dev --extra ha-latest prek run --all-files
+bash scripts/hass-dev.sh run open_meteo_local uv run --locked --extra dev pytest
+bash scripts/hass-dev.sh run open_meteo_local uv run --locked --extra dev prek run --all-files
 ```
 
-The Home Assistant extras are mutually exclusive. Each pins an official
-`pytest-homeassistant` version and its matching Home Assistant version. The
-offline tests do not establish that the real Open-Meteo API works.
+Tests use the Home Assistant version resolved in `uv.lock`; the minimum
+supported version is not separately tested. The offline tests do not establish
+that the real Open-Meteo API works.
 
 The lifecycle, configuration, weather and diagnostics tests are adapted from
 Home Assistant's `tests/components/open_meteo`. This integration retains its
@@ -30,7 +29,7 @@ than Core's JSON forecast fixture.
 
 Mypy currently checks the constants, diagnostics and weather modules; the
 configuration flow and coordinator require further type work. Prek runs with
-`--no-sync` to preserve the selected HA environment; sync the selected extras
+`--no-sync` to preserve the selected HA environment; sync the dev extra
 before running it. Install `gh actions-lock` v0.4.1 to update the workflow lock
 and never edit the generated lock manually.
 
