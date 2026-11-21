@@ -7,14 +7,7 @@
       "include-component-in-tag": false,
       "draft": false,
       "prerelease": true,
-      "force-tag-creation": true,
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "custom_components/open_meteo_local/manifest.json",
-          "jsonpath": "$.version"
-        }
-      ]
+      "force-tag-creation": true
     }
   }
 }
