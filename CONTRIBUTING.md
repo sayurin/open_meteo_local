@@ -8,7 +8,10 @@ Use one of `feat`, `fix`, `perf`, `deps`, `revert`, `docs`, `style`, `chore`,
 subjects.
 
 The development project is not a distributable Python package; `version.txt`
-and the integration manifest are managed by Release Please. Python 3.14.10 and
+and the Release Please version manifest are managed by Release Please. The
+committed integration manifest stays at `0.0.0`; the verified tag version is
+inserted into the release ZIP only. Install the ZIP rather than the tag's
+source archive to obtain the release version. Python 3.14.10 and
 uv 0.13.1 or later are required. Bootstrap the workspace after changing
 dependencies or switching branches. Run the independent test environment via:
 
