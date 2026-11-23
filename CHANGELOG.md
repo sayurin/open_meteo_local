@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/sayurin/open_meteo_local/compare/v0.1.6...v0.1.7) (2026-11-21)
+
+
+### Bug Fixes
+
+* align runtime openmeteo-sdk with tests ([#42](https://github.com/sayurin/open_meteo_local/issues/42)) ([c4bb171](https://github.com/sayurin/open_meteo_local/commit/c4bb171128016c0176d5cfb7c3010a77b26f58d1))
+
 ## [0.1.6](https://github.com/sayurin/open_meteo_local/compare/v0.1.5...v0.1.6) (2026-11-15)
 
 
