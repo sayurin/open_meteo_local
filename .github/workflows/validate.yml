@@ -46,7 +46,7 @@ jobs:
         run: uv run --locked --extra dev pytest --cov=custom_components.open_meteo_local --cov-report=term-missing
       - name: Audit dependencies
         run: uv audit --locked
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@v7.1.0
         with:
           go-version: 1.25.0
           cache: false
